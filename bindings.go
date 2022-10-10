@@ -7,7 +7,7 @@ import "C"
 
 type NUM_CHANNELS int
 
-var (
+const (
 	GRAYSCALE  NUM_CHANNELS = 1
 	GRAY_ALPHA NUM_CHANNELS = 2
 	RGB        NUM_CHANNELS = 3
@@ -16,7 +16,7 @@ var (
 
 type DATATYPE int
 
-var (
+const (
 	TYPE_FLOAT   DATATYPE = 1
 	TYPE_UINT8   DATATYPE = 2
 	TYPE_UINT16  DATATYPE = 3
@@ -25,7 +25,7 @@ var (
 
 type ENDIANNESS int
 
-var (
+const (
 	NATIVE_ENDIAN ENDIANNESS = 1
 	LITTLE_ENDIAN ENDIANNESS = 2
 	BIG_ENDIAN    ENDIANNESS = 3
