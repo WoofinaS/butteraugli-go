@@ -38,29 +38,29 @@ func (a *API) SetHFAsymmetry(asymmetry float32) {
 // within it.
 func (a *API) Compute_new(t ComputeTask) (Result, error) {
 	refPixFmt := C.JxlPixelFormat{
-		C.uint32_t(t.refPixFmt.NumChannels),
-		C.JxlDataType(t.refPixFmt.DataType),
-		C.JxlEndianness(t.refPixFmt.Endianness),
-		C.ulong(t.refPixFmt.Align),
+		C.uint32_t(t.RefPixFmt.NumChannels),
+		C.JxlDataType(t.RefPixFmt.DataType),
+		C.JxlEndianness(t.RefPixFmt.Endianness),
+		C.ulong(t.RefPixFmt.Align),
 	}
 	disPixFmt := C.JxlPixelFormat{
-		C.uint32_t(t.disPixFmt.NumChannels),
-		C.JxlDataType(t.disPixFmt.DataType),
-		C.JxlEndianness(t.disPixFmt.Endianness),
-		C.ulong(t.disPixFmt.Align),
+		C.uint32_t(t.DisPixFmt.NumChannels),
+		C.JxlDataType(t.DisPixFmt.DataType),
+		C.JxlEndianness(t.DisPixFmt.Endianness),
+		C.ulong(t.DisPixFmt.Align),
 	}
 
-	refPoint := C.malloc(C.ulong(len(t.refBytes)))
-	disPoint := C.malloc(C.ulong(len(t.disBytes)))
-	refBytes := unsafe.Slice((*byte)(refPoint), len(t.refBytes))
-	disBytes := unsafe.Slice((*byte)(disPoint), len(t.disBytes))
+	refPoint := C.malloc(C.ulong(len(t.RefBytes)))
+	disPoint := C.malloc(C.ulong(len(t.DisBytes)))
+	refBytes := unsafe.Slice((*byte)(refPoint), len(t.RefBytes))
+	disBytes := unsafe.Slice((*byte)(disPoint), len(t.DisBytes))
 
-	copy(refBytes, t.refBytes)
-	copy(disBytes, t.disBytes)
+	copy(refBytes, t.RefBytes)
+	copy(disBytes, t.DisBytes)
 
-	result := C.JxlButteraugliCompute(a.jxlAPI, C.uint32_t(t.height),
-		C.uint32_t(t.width), &refPixFmt, refPoint, C.ulong(len(t.refBytes)),
-		&disPixFmt, disPoint, C.ulong(len(t.disBytes)))
+	result := C.JxlButteraugliCompute(a.jxlAPI, C.uint32_t(t.Height),
+		C.uint32_t(t.Width), &refPixFmt, refPoint, C.ulong(len(t.RefBytes)),
+		&disPixFmt, disPoint, C.ulong(len(t.DisBytes)))
 	if result == nil {
 		return Result{}, errors.New("failed to compute butteraugli scores")
 	}
