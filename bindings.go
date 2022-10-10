@@ -50,7 +50,7 @@ type Result struct {
 }
 
 type ComputeTask struct {
-	width, height        uint32
-	refBytes, disBytes   []byte
-	refPixFmt, disPixFmt PixelFormat
+	Width, Height        uint32
+	RefBytes, DisBytes   []byte
+	RefPixFmt, DisPixFmt PixelFormat
 }
