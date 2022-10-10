@@ -1,6 +1,6 @@
 package butteraugli_go
 
-// #cgo CFLAGS: -O3 -march=native
+// #cgo CFLAGS:
 // #cgo LDFLAGS: -ljxl -shared
 // #include <stdint.h>
 // #include <stdlib.h>
@@ -8,7 +8,6 @@ package butteraugli_go
 import "C"
 import (
 	"errors"
-	"image"
 	"unsafe"
 )
 
@@ -26,7 +25,7 @@ func (a *API) Destroy() {
 // SetIntensityTarget sets the butteraugli Intensity Target. This should not be
 // set to the brightness of the display and instead the larget luminance of the
 // color space. For sRGB this is 80.
-func (a *API) SetIntensityTarget(intensity int) {
+func (a *API) SetIntensityTarget(intensity float32) {
 	C.JxlButteraugliApiSetIntensityTarget(a.jxlAPI, C.float(intensity))
 }
 
@@ -35,43 +34,35 @@ func (a *API) SetHFAsymmetry(asymmetry float32) {
 	C.JxlButteraugliApiSetHFAsymmetry(a.jxlAPI, C.float(asymmetry))
 }
 
-// Compute takes in two image.Image frames and computes the butteraugli scores
-// and returns a butteraugli result that is wraped in a  Result.
-func (a *API) Compute(ref, dis image.Image) (Result, error) {
-	rwidth, rheight, chans := ref.Bounds().Dx(), ref.Bounds().Dy(), 4
-	if rwidth != dis.Bounds().Dx() || rheight != dis.Bounds().Dy() {
-		return Result{}, errors.New("ref/dist sizes dont match")
+// Compute takes a ComputeTask as a input and calculates the score of the image
+// within it.
+func (a *API) Compute_new(t ComputeTask) (Result, error) {
+	refPixFmt := C.JxlPixelFormat{
+		C.uint32_t(t.refPixFmt.NumChannels),
+		C.JxlDataType(t.refPixFmt.DataType),
+		C.JxlEndianness(t.refPixFmt.Endianness),
+		C.ulong(t.refPixFmt.Align),
 	}
-	numBytes := rwidth * rheight * chans * int(unsafe.Sizeof(uint16(0)))
-	lenBytes := C.ulong(rwidth * rheight * chans)
-	refPoint := C.malloc(C.ulong(numBytes))
-	disPoint := C.malloc(C.ulong(numBytes))
-	refBytes := unsafe.Slice((*uint16)(refPoint), lenBytes)
-	disBytes := unsafe.Slice((*uint16)(disPoint), lenBytes)
-
-	index := 0
-	for x := 0; x < rwidth; x++ {
-		for y := 0; y < rheight; y++ {
-			rr, rg, rb, ra := ref.At(x, y).RGBA()
-			dr, dg, db, da := dis.At(x, y).RGBA()
-			refBytes[index+0] = uint16(rr)
-			refBytes[index+1] = uint16(rg)
-			refBytes[index+2] = uint16(rb)
-			refBytes[index+3] = uint16(ra)
-			disBytes[index+0] = uint16(dr)
-			disBytes[index+1] = uint16(dg)
-			disBytes[index+2] = uint16(db)
-			disBytes[index+3] = uint16(da)
-			index += 4
-		}
+	disPixFmt := C.JxlPixelFormat{
+		C.uint32_t(t.disPixFmt.NumChannels),
+		C.JxlDataType(t.disPixFmt.DataType),
+		C.JxlEndianness(t.disPixFmt.Endianness),
+		C.ulong(t.disPixFmt.Align),
 	}
 
-	pixelfmt := C.JxlPixelFormat{4, 3, 1, 0}
+	refPoint := C.malloc(C.ulong(len(t.refBytes)))
+	disPoint := C.malloc(C.ulong(len(t.disBytes)))
+	refBytes := unsafe.Slice((*byte)(refPoint), len(t.refBytes))
+	disBytes := unsafe.Slice((*byte)(disPoint), len(t.disBytes))
 
-	result := C.JxlButteraugliCompute(a.jxlAPI, C.uint32_t(rheight), C.uint32_t(rwidth),
-		&pixelfmt, refPoint, C.ulong(numBytes), &pixelfmt, disPoint, C.ulong(numBytes))
+	copy(refBytes, t.refBytes)
+	copy(disBytes, t.disBytes)
+
+	result := C.JxlButteraugliCompute(a.jxlAPI, C.uint32_t(t.height),
+		C.uint32_t(t.width), &refPixFmt, refPoint, C.ulong(len(t.refBytes)),
+		&disPixFmt, disPoint, C.ulong(len(t.disBytes)))
 	if result == nil {
-		return Result{}, errors.New("failed to compute result")
+		return Result{}, errors.New("failed to compute butteraugli scores")
 	}
 
 	C.free(refPoint)
@@ -93,6 +84,6 @@ func (r *Result) GetMaxDistance() float32 {
 
 // GetDistance returns the average butteraugli score from the result averaged
 // by the given pnorm.
-func (r *Result) GetDistance(pnorm int) float32 {
+func (r *Result) GetDistance(pnorm float32) float32 {
 	return float32(C.JxlButteraugliResultGetDistance(r.jxlResult, C.float(pnorm)))
 }
