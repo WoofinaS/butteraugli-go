@@ -61,12 +61,13 @@ func (a *API) Compute_new(t ComputeTask) (Result, error) {
 	result := C.JxlButteraugliCompute(a.jxlAPI, C.uint32_t(t.Height),
 		C.uint32_t(t.Width), &refPixFmt, refPoint, C.ulong(len(t.RefBytes)),
 		&disPixFmt, disPoint, C.ulong(len(t.DisBytes)))
-	if result == nil {
-		return Result{}, errors.New("failed to compute butteraugli scores")
-	}
 
 	C.free(refPoint)
 	C.free(disPoint)
+
+	if result == nil {
+		return Result{}, errors.New("failed to compute butteraugli scores")
+	}
 
 	return Result{result}, nil
 }
@@ -85,5 +86,6 @@ func (r *Result) GetMaxDistance() float32 {
 // GetDistance returns the average butteraugli score from the result averaged
 // by the given pnorm.
 func (r *Result) GetDistance(pnorm float32) float32 {
-	return float32(C.JxlButteraugliResultGetDistance(r.jxlResult, C.float(pnorm)))
+	return float32(C.JxlButteraugliResultGetDistance(r.jxlResult,
+		C.float(pnorm)))
 }
