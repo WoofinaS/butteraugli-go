@@ -3,6 +3,7 @@ package butteraugli_go
 // #cgo CFLAGS:
 // #cgo LDFLAGS: -ljxl -shared
 // #include <jxl/butteraugli.h>
+// #include <jxl/types.h>
 import "C"
 
 type NUM_CHANNELS int
@@ -17,18 +18,18 @@ const (
 type DATATYPE int
 
 const (
-	TYPE_FLOAT   DATATYPE = 0
-	TYPE_UINT8   DATATYPE = 2
-	TYPE_UINT16  DATATYPE = 3
-	TYPE_FLOAT16 DATATYPE = 5
+	TYPE_FLOAT   DATATYPE = C.JXL_TYPE_FLOAT
+	TYPE_UINT8   DATATYPE = C.JXL_TYPE_UINT8
+	TYPE_UINT16  DATATYPE = C.JXL_TYPE_UINT16
+	TYPE_FLOAT16 DATATYPE = C.JXL_TYPE_FLOAT16
 )
 
 type ENDIANNESS int
 
 const (
-	NATIVE_ENDIAN ENDIANNESS = 0
-	LITTLE_ENDIAN ENDIANNESS = 1
-	BIG_ENDIAN    ENDIANNESS = 2
+	NATIVE_ENDIAN ENDIANNESS = C.JXL_NATIVE_ENDIAN
+	LITTLE_ENDIAN ENDIANNESS = C.JXL_LITTLE_ENDIAN
+	BIG_ENDIAN    ENDIANNESS = C.JXL_BIG_ENDIAN
 )
 
 // API is a simple wrapper struct for the butteraugli api.
