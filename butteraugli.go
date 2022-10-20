@@ -99,7 +99,7 @@ func (a *API) Compute(t ComputeTask) (Result, error) {
 	/* frees underlying butteraugli result if the user didnt when the struct is
 	 * garbage collected. This avoids a potental memory leak.
 	 */
-	runtime.SetFinalizer(r, func(r *Result) {
+	runtime.SetFinalizer(&r, func(r *Result) {
 		r.Destroy()
 	})
 
