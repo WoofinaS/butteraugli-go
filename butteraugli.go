@@ -3,11 +3,11 @@ package butteraugli_go
 // #cgo CFLAGS:
 // #cgo LDFLAGS: -ljxl -shared
 // #include <stdint.h>
-// #include <stdlib.h>
 // #include <jxl/butteraugli.h>
 import "C"
 import (
 	"errors"
+	"reflect"
 	"unsafe"
 )
 
@@ -36,7 +36,7 @@ func (a *API) SetHFAsymmetry(asymmetry float32) {
 
 // Compute takes a ComputeTask as a input and calculates the score of the image
 // within it.
-func (a *API) Compute_new(t ComputeTask) (Result, error) {
+func (a *API) Compute(t ComputeTask) (Result, error) {
 	refPixFmt := C.JxlPixelFormat{
 		C.uint32_t(t.RefPixFmt.NumChannels),
 		C.JxlDataType(t.RefPixFmt.DataType),
@@ -50,20 +50,31 @@ func (a *API) Compute_new(t ComputeTask) (Result, error) {
 		C.ulong(t.DisPixFmt.Align),
 	}
 
-	refPoint := C.malloc(C.ulong(len(t.RefBytes)))
-	disPoint := C.malloc(C.ulong(len(t.DisBytes)))
-	refBytes := unsafe.Slice((*byte)(refPoint), len(t.RefBytes))
-	disBytes := unsafe.Slice((*byte)(disPoint), len(t.DisBytes))
+	/*
+	 * We can not pass go slices to c as they contain go pointers as well as
+	 * being as incompatable data type. Therefore we must get a unsafe pointer
+	 * to the underlying array if we want to avoid making a copy in c allocated
+	 * memory. This also means we can avoid importing stdlib.h for malloc/free.
+	 */
 
-	copy(refBytes, t.RefBytes)
-	copy(disBytes, t.DisBytes)
+	/* creats a unsafe pointer to both byte slices */
+	refHeader := (*reflect.SliceHeader)(unsafe.Pointer(&t.RefBytes))
+	disHeader := (*reflect.SliceHeader)(unsafe.Pointer(&t.DisBytes))
+
+	/* Gets unsafe pointer to underlying data for both slices */
+	refData := unsafe.Pointer(refHeader.Data)
+	disData := unsafe.Pointer(disHeader.Data)
 
 	result := C.JxlButteraugliCompute(a.jxlAPI, C.uint32_t(t.Height),
-		C.uint32_t(t.Width), &refPixFmt, refPoint, C.ulong(len(t.RefBytes)),
-		&disPixFmt, disPoint, C.ulong(len(t.DisBytes)))
+		C.uint32_t(t.Width), &refPixFmt, refData, C.ulong(len(t.RefBytes)),
+		&disPixFmt, disData, C.ulong(len(t.DisBytes)))
 
-	C.free(refPoint)
-	C.free(disPoint)
+	/* Prevents slices from being garbage collected while in use. GC does not
+	 * keep track of unsafe pointers. Removing this means the GC might free the
+	 * byte slices during Butteraugli calculations.
+	 */
+	_ = t.RefBytes[0]
+	_ = t.DisBytes[0]
 
 	if result == nil {
 		return Result{}, errors.New("failed to compute butteraugli scores")
