@@ -34,6 +34,7 @@ const (
 
 // API is a simple wrapper struct for the butteraugli api.
 type API struct {
+	freed  bool
 	jxlAPI *C.JxlButteraugliApi
 }
 
@@ -47,6 +48,7 @@ type PixelFormat struct {
 
 // Result is a simple wrapper struct for results from the butteraugli api.
 type Result struct {
+	freed     bool
 	jxlResult *C.JxlButteraugliResult
 }
 

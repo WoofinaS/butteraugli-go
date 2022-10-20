@@ -8,18 +8,32 @@ import "C"
 import (
 	"errors"
 	"reflect"
+	"runtime"
 	"unsafe"
 )
 
 // ApiCreate creates a new API structure that wraps around the butteraugli api.
 func ApiCreate() API {
-	return API{C.JxlButteraugliApiCreate(nil)}
+	a := API{false, C.JxlButteraugliApiCreate(nil)}
+
+	/* frees underlying butteraugli api if the user didnt when the struct is
+	 * garbage collected. This avoids a potental memory leak.
+	 */
+	runtime.SetFinalizer(&a, func(a *API) {
+		a.Destroy()
+	})
+
+	return a
 }
 
 // Destroy destorys the underlying butteraugli api and frees memory. This must
 // be called when done using the api, else it creates a memory leak.
 func (a *API) Destroy() {
+	if a.freed {
+		return
+	}
 	C.JxlButteraugliApiDestroy(a.jxlAPI)
+	a.freed = true
 }
 
 // SetIntensityTarget sets the butteraugli Intensity Target. This should not be
@@ -80,13 +94,26 @@ func (a *API) Compute(t ComputeTask) (Result, error) {
 		return Result{}, errors.New("failed to compute butteraugli scores")
 	}
 
-	return Result{result}, nil
+	r := Result{false, result}
+
+	/* frees underlying butteraugli result if the user didnt when the struct is
+	 * garbage collected. This avoids a potental memory leak.
+	 */
+	runtime.SetFinalizer(r, func(r *Result) {
+		r.Destroy()
+	})
+
+	return r, nil
 }
 
 // Destroy destorys the underlying butteraugli result and frees memory. This
 // must be called when done using the result, else it creates a memory leak.
 func (r *Result) Destroy() {
+	if r.freed {
+		return
+	}
 	C.JxlButteraugliResultDestroy(r.jxlResult)
+	r.freed = true
 }
 
 // GetMaxDistance returns the max butteraugli score from the result.
