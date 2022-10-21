@@ -17,8 +17,8 @@ import (
 func ApiCreate() API {
 	a := API{false, C.JxlButteraugliApiCreate(nil)}
 
-	// frees underlying butteraugli api if the user didnt when the struct is
-	// garbage collected. This avoids a potental memory leak.
+	// frees underlying butteraugli api if the user didn't when the struct is
+	// garbage collected. This avoids a potential memory leak.
 	runtime.SetFinalizer(&a, func(a *API) {
 		a.Destroy()
 	})
@@ -26,7 +26,7 @@ func ApiCreate() API {
 	return a
 }
 
-// Destroy destorys the underlying butteraugli api and frees memory. This is
+// Destroy destroys the underlying butteraugli api and frees memory. This is
 // implicitly called when the Result is garbage collected. However when the
 // Result is garbage collected is undeterminable.
 func (a *API) Destroy() {
@@ -43,14 +43,15 @@ func (a *API) SetIntensityTarget(intensity float32) {
 	C.JxlButteraugliApiSetIntensityTarget(a.jxlAPI, C.float(intensity))
 }
 
-// SetHFAsymmetry sets the butteraugli Asymmetry.
+// SetHFAsymmetry controls bias for penalizing high frequency artifacts over
+// blurring. 1.0 = neutral / default
 func (a *API) SetHFAsymmetry(asymmetry float32) {
 	C.JxlButteraugliApiSetHFAsymmetry(a.jxlAPI, C.float(asymmetry))
 }
 
 // Compute takes a ComputeTask as a input and returns a Result struct and error
 // If there is a error the user can safely assume that the Result does not need
-// to be destoryed.
+// to be destroyed.
 func (a *API) Compute(t ComputeTask) (Result, error) {
 	refPixFmt := C.JxlPixelFormat{
 		C.uint32_t(t.RefPixFmt.NumChannels),
@@ -66,11 +67,11 @@ func (a *API) Compute(t ComputeTask) (Result, error) {
 	}
 
 	// We can not pass go slices to c as they contain go pointers as well as
-	// being as incompatable data type. Therefore we must get a unsafe pointer
+	// being as incompatible data type. Therefore we must get a unsafe pointer
 	// to the underlying array if we want to avoid making a copy in c allocated
 	// memory. This also means we can avoid importing stdlib.h for malloc/free.
 
-	// creats a unsafe pointer to both byte slices
+	// Creates a unsafe pointer to both byte slices
 	refHeader := (*reflect.SliceHeader)(unsafe.Pointer(&t.RefBytes))
 	disHeader := (*reflect.SliceHeader)(unsafe.Pointer(&t.DisBytes))
 
@@ -95,7 +96,7 @@ func (a *API) Compute(t ComputeTask) (Result, error) {
 	r := Result{false, result}
 
 	// frees underlying butteraugli result if the user didn't when the struct
-	// is garbage collected. This avoids a potental memory leak.
+	// is garbage collected. This avoids a potential memory leak.
 	runtime.SetFinalizer(&r, func(r *Result) {
 		r.Destroy()
 	})
@@ -103,7 +104,7 @@ func (a *API) Compute(t ComputeTask) (Result, error) {
 	return r, nil
 }
 
-// Destroy destorys the underlying butteraugli result and frees memory. This
+// Destroy destroys the underlying butteraugli result and frees memory. This
 // is implicitly called when the Result is garbage collected. However when the
 // Result is garbage collected is undeterminable.
 func (r *Result) Destroy() {
@@ -120,7 +121,7 @@ func (r *Result) GetMaxDistance() float32 {
 }
 
 // GetDistance returns the average butteraugli distance of each pixel
-// averaged by the given pnorm. More information about pnrom can be seen here.
+// averaged by the given pnorm. More information about pnorm can be seen here.
 // https://en.wikipedia.org/wiki/Norm_(mathematics)#p-norm
 func (r *Result) GetDistance(pnorm float32) float32 {
 	return float32(C.JxlButteraugliResultGetDistance(r.jxlResult,
